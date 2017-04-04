@@ -7,26 +7,34 @@ from blog.models import Post, Comments
 from blog.forms import EmailPostForm, CommentForm
 
 from decouple import config
+from taggit.models import Tag
 
 
-# def post_list(request):
-# 	object_list = Post.published.all()
-# 	paginator = Paginator(object_list, 3)
-# 	page = request.GET.get('page')
+def post_list(request, tag_slug=None):
+	object_list = Post.published.all()
+	tag = None
+
+	if tag_slug:
+		tag = get_object_or_404(Tag, slug=tag_slug)
+		object_list = object_list.filter(tags__in=[tag])
+
+	paginator = Paginator(object_list, 3)
+	page = request.GET.get('page')
 	
-# 	try:
-# 		posts = paginator.page(page)
-# 	except PageNotAnInteger:
-# 		# If page is not an integer, render the first page
-# 		posts = paginator.page(1)
-# 	except EmptyPage:
-# 		# If page is out of range, deliver the last page
-# 		posts = paginator.page(paginator.num_pages)
-# 	context = {
-# 		'page': page,
-# 		'posts': posts,
-# 	}
-# 	return render(request, 'blog/post/list.html', context)
+	try:
+		posts = paginator.page(page)
+	except PageNotAnInteger:
+		# If page is not an integer, render the first page
+		posts = paginator.page(1)
+	except EmptyPage:
+		# If page is out of range, deliver the last page
+		posts = paginator.page(paginator.num_pages)
+	context = {
+		'page': page,
+		'posts': posts,
+		'tag': tag,
+	}
+	return render(request, 'blog/post/list.html', context)
 
 
 def post_detail(request, year, month, day, post):
@@ -90,8 +98,8 @@ def post_share(request, post_id):
 	return render(request, 'blog/post/share.html', context)
 
 
-class PostListView(ListView):
-	queryset = Post.published.all()
-	context_object_name = 'posts'
-	paginate_by = 3
-	template_name = 'blog/post/list.html'
+# class PostListView(ListView):
+# 	queryset = Post.published.all()
+# 	context_object_name = 'posts'
+# 	paginate_by = 3
+# 	template_name = 'blog/post/list.html'
