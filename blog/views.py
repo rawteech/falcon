@@ -3,8 +3,8 @@ from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.core.mail import send_mail
 from django.views.generic import ListView
 
-from blog.models import Post
-from blog.forms import EmailPostForm
+from blog.models import Post, Comments
+from blog.forms import EmailPostForm, CommentForm
 
 from decouple import config
 
@@ -35,7 +35,30 @@ def post_detail(request, year, month, day, post):
 								   publish__year=year,
 								   publish__month=month,
 								   publish__day=day)
-	context = {'post': post}
+	# Display active comments
+	comments = post.comments.filter(active=True)
+
+	if request.method == 'POST':
+		# Meaning a comment was posted
+		comment_form = CommentForm(data=request.POST)
+
+		if comment_form.is_valid():
+			# Create comment object but dont save it yet
+			new_comment = comment_form.save(commit=False)
+
+			# Assign current post to the comment
+			new_comment.post = post
+
+			# Now save the comment
+			new_comment.save()
+	else:
+		comment_form = CommentForm()
+
+	context = {
+		'post': post, 
+		'comments': comments, 
+		'comment_form': comment_form,
+	}
 	return render(request, 'blog/post/detail.html', context)
 
 
@@ -59,7 +82,11 @@ def post_share(request, post_id):
 	else:
 		form = EmailPostForm()
 
-	context = {'post': post, 'form': form, 'sent': sent}
+	context = {
+		'post': post, 
+		'form': form, 
+		'sent': sent,
+	}
 	return render(request, 'blog/post/share.html', context)
 
 
