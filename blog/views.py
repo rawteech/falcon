@@ -5,10 +5,11 @@ from django.views.generic import ListView
 from django.db.models import Count
 
 from blog.models import Post, Comments
-from blog.forms import EmailPostForm, CommentForm
+from blog.forms import EmailPostForm, CommentForm, SearchForm
 
 from decouple import config
 from taggit.models import Tag
+from haystack.query import SearchQuerySet
 
 
 def post_list(request, tag_slug=None):
@@ -103,6 +104,28 @@ def post_share(request, post_id):
 	}
 	return render(request, 'blog/post/share.html', context)
 
+
+def post_search(request):
+	form = SearchForm()
+	context = dict()
+
+	if 'query' in request.GET:
+		form = SearchForm(request.GET)
+		
+		# form validation
+		if form.is_valid():
+			cd = form.cleaned_data
+			results = SearchQuerySet().models(Post).filter(content=cd['query']).load_all()
+
+			# count total results
+			total_results = results.count()
+
+			context['cd'] = cd
+			context['results'] = results
+			context['total_results'] = total_results
+
+	context['form'] = form
+	return render(request, 'blog/post/search.html', context)
 
 # class PostListView(ListView):
 # 	queryset = Post.published.all()
